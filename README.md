@@ -1,5 +1,8 @@
 # TranscriptionSync
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22997553.svg)](https://doi.org/10.5281/zenodo.22997553)
+
+
 **Real-time, training-free, CPU-cheap lip-sync** that turns a *transcription text
 stream* into [ARKit](https://developer.apple.com/documentation/arkit/arfaceanchor/blendshapelocation)
 mouth blendshapes — no GPU, no phoneme-timing metadata, no per-utterance buffering.

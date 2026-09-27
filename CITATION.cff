@@ -8,4 +8,9 @@ authors:
 license: MIT
 repository-code: "https://github.com/wpu-research/transcription-sync"
 version: "0.1.0"
+doi: "10.5281/zenodo.22997553"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.22997552"
+    description: "Concept DOI (all versions)"
 date-released: "2026-09-27"
