@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<!--
+  Deterministic offline avatar renderer for Section V-C evaluation videos.
+
+  Loaded by render_video.py (playwright, headless chromium) via a local HTTP
+  server. Exposes a window-level API; no realtime loop, no lerp smoothing —
+  every frame is rendered exactly from the supplied morph values, so the
+  output video is frame-accurate with respect to the blendshape schedule.
+
+    window.avatarReady          -> Promise resolving when the model is loaded
+    window.setMorphs(dict)      -> apply {morphName: value} (unlisted -> 0)
+    window.renderNow()          -> render one frame to the canvas
+    window.getMorphNames()      -> list of available morph target names
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+  body { margin: 0; background: #404448; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const params = new URLSearchParams(location.search);
+const MODEL_URL = params.get('model') || '/public/human.glb';
+const W = parseInt(params.get('w') || '640', 10);
+const H = parseInt(params.get('h') || '480', 10);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x404448);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+
+const key = new THREE.DirectionalLight(0xffffff, 1.6);
+key.position.set(0.3, 1.2, 1.5);
+scene.add(key);
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+const camera = new THREE.PerspectiveCamera(28, W / H, 0.01, 100);
+
+// morphName -> [{mesh, index}]
+const morphMap = new Map();
+
+window.avatarReady = new Promise((resolve, reject) => {
+  new GLTFLoader().load(MODEL_URL, (gltf) => {
+    scene.add(gltf.scene);
+    gltf.scene.updateMatrixWorld(true);
+
+    let faceMesh = null;
+    gltf.scene.traverse((node) => {
+      if (node.isMesh && node.morphTargetDictionary) {
+        for (const [name, index] of Object.entries(node.morphTargetDictionary)) {
+          if (!morphMap.has(name)) morphMap.set(name, []);
+          morphMap.get(name).push({ mesh: node, index });
+          if (name === 'jawOpen') faceMesh = node;
+        }
+      }
+    });
+
+    // Frame the camera on the face: bbox of the morphed (face) mesh if found,
+    // otherwise the upper part of the whole model.
+    const box = new THREE.Box3();
+    if (faceMesh) {
+      box.setFromObject(faceMesh);
+    } else {
+      box.setFromObject(gltf.scene);
+      box.min.y = box.max.y - (box.max.y - box.min.y) * 0.22; // top 22 % ≈ head
+    }
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const span = Math.max(size.x, size.y);
+    const dist = (span * 0.72) / Math.tan((camera.fov * Math.PI / 180) / 2);
+    camera.position.set(center.x, center.y, center.z + dist + size.z / 2);
+    camera.lookAt(center);
+
+    renderer.render(scene, camera);
+    resolve(morphMap.size);
+  }, undefined, reject);
+});
+
+window.getMorphNames = () => [...morphMap.keys()];
+
+// Inventory + selective visibility (perf experiments: body meshes dominate
+// SwiftShader vertex cost but are mostly out of the face-framed shot).
+window.listMeshes = () => {
+  const out = [];
+  scene.traverse((n) => {
+    if (n.isMesh) out.push({ name: n.name, verts: n.geometry.attributes.position.count,
+                              morphs: !!n.morphTargetDictionary, visible: n.visible });
+  });
+  return out;
+};
+window.setMeshVisibility = (pattern, visible) => {
+  let n = 0;
+  scene.traverse((node) => {
+    if (node.isMesh && node.name.includes(pattern)) { node.visible = visible; n++; }
+  });
+  return n;
+};
+
+window.setMorphs = (dict) => {
+  for (const [name, entries] of morphMap) {
+    const v = dict[name] ?? 0;
+    for (const e of entries) e.mesh.morphTargetInfluences[e.index] = v;
+  }
+};
+
+window.renderNow = () => { renderer.render(scene, camera); return true; };
+
+// Batch API: render a list of morph dicts, return PNG data-URLs in one call
+// (avoids a playwright round-trip per frame — ~10x faster than screenshots).
+window.renderBatch = (frameList) => {
+  const out = [];
+  for (const dict of frameList) {
+    window.setMorphs(dict);
+    renderer.render(scene, camera);
+    out.push(renderer.domElement.toDataURL('image/png'));
+  }
+  return out;
+};
+</script>
+</body>
+</html>

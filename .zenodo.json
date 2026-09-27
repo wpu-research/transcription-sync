@@ -1,0 +1,12 @@
+{
+  "title": "TranscriptionSync: training-free lip synchronization for native-audio LLMs — code and evaluation scripts",
+  "upload_type": "software",
+  "description": "TranscriptionSync drives 14 ARKit mouth blendshapes from the output of native-audio (speech-to-speech) large language models without training. The repository contains the streaming viseme engine (Python package transcription-sync), the evaluation modules (paper/tools) and all scripts of the revised evaluation (paper/revision): wall-clock Layer-1 latency, streaming CTC alignment of the Live API transcription, video-measured GRID evaluation including an Audio2Face-3D port, re-trained audio-to-blendshape regressors, SyncNet offset tests and a re-collected Gemini Live evaluation (English and Turkish). No datasets, model weights or API keys are included.",
+  "creators": [
+    {"name": "Arslan, Murat", "affiliation": "Altınbaş Cyprus University, Department of Software Engineering"}
+  ],
+  "license": "MIT",
+  "keywords": ["lip synchronization", "viseme synthesis", "ARKit blendshapes", "speech-to-speech models", "forced alignment", "embodied conversational agents", "Gemini Live"],
+  "related_identifiers": [{"identifier": "https://github.com/wpu-research/A.T.L.A.S", "relation": "isSupplementTo", "scheme": "url"}],
+  "access_right": "open"
+}

@@ -93,6 +93,26 @@ expression/emotion layer can drive the rest of the face additively.
 - Geometric/articulatory lip-sync, not a perceptual-quality talking-head model.
 - Drives mouth blendshapes only; rendering and the rest of the face are yours.
 
+## Paper and reproducibility
+
+This repository accompanies the paper *TranscriptionSync: Training-Free Lip
+Synchronization for Native-Audio Large Language Models and a Layer-Wise Evaluation
+Against Video-Measured Articulation* (M. Arslan). Besides the streaming viseme engine
+above (the rate-scheduled "RATE" variant of the paper), it contains:
+
+- `paper/tools/` — the evaluation modules: condition generators (amplitude-only,
+  RATE, TranscriptionSync Layers 1–3, MFA oracle), Layer-2/3 benchmark, GRID
+  processing and regressor training.
+- `paper/revision/` — the scripts of the revised evaluation: wall-clock Layer-1
+  latency, streaming CTC alignment of the Live API transcription, video-measured
+  GRID evaluation (including a Python port of the Audio2Face-3D post-processing),
+  SyncNet offset test, re-training on synchronous audio and the re-collected Gemini
+  Live evaluation. See `paper/revision/README.md`.
+
+The host assistant, A.T.L.A.S, lives in a separate repository
+(https://github.com/wpu-research/A.T.L.A.S; its base code derives from Atlas-MK37 by
+FatihMakes and is licensed CC BY-NC 4.0). Everything in this repository is MIT.
+
 ## License
 
 MIT © Murat Arslan
